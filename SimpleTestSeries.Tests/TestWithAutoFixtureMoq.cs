@@ -45,8 +45,27 @@ public class TestWithAutoFixtureMoq
     }
 
     [Theory]
+    [AutoData]
+    public void Get_ReturnOk_With_AutoData(string city, List<WeatherForecast> expectedForecasts)
+    {
+        var weatherService = _fixture.Freeze<Mock<IWeatherService>>();
+        weatherService.Setup(x => x.GetByCity(city))
+            .Returns(expectedForecasts)
+            .Verifiable(Times.Once);
+
+        var sut = _fixture.Create<WeatherForecastController>();
+
+        IActionResult actual = sut.Get(city);
+
+        var okResult = Assert.IsType<OkObjectResult>(actual);
+        var forecasts = Assert.IsAssignableFrom<IEnumerable<WeatherForecast>>(okResult.Value);
+        Assert.Same(expectedForecasts, forecasts);
+        weatherService.Verify();
+    }
+
+    [Theory]
     [AutoMoqData]
-    public void Get_ReturnOk_With_AutoData(
+    public void Get_ReturnOk_With_AutoMoqData(
         [Frozen] Mock<IWeatherService> weatherService, 
         [Greedy] WeatherForecastController sut, 
         string city,
@@ -60,7 +79,6 @@ public class TestWithAutoFixtureMoq
 
         var okResult = Assert.IsType<OkObjectResult>(actual);
         var forecasts = Assert.IsAssignableFrom<IEnumerable<WeatherForecast>>(okResult.Value);
-        Assert.NotEmpty(forecasts);
         Assert.Same(expectedForecasts, forecasts);
         weatherService.Verify();
     }
